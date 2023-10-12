@@ -65,6 +65,22 @@ resource "azapi_resource" "microsoft_example" {
   })
 }
 
+resource "azapi_resource" "cumtom_example" {
+  name      = "MicrosoftExample"
+  type      = "Microsoft.DevCenter/devcenters/catalogs@${local.api_version}"
+  parent_id = azapi_resource.dct.id
+  body = jsonencode({
+    properties = {
+      gitHub = {
+        uri              = "https://github.com/gareda/azure-deployment-environments.git"
+        branch           = "main"
+        path             = "/templates"
+        secretIdentifier = azurerm_key_vault_secret.github_personal_access_token.id
+      }
+    }
+  })
+}
+
 resource "azapi_resource" "development" {
   name      = "development"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"

@@ -1,0 +1,6 @@
+name: Azure DNS Private Resolver
+version: 1.0.0
+summary: Deploys the Azure DNS Private Resolver
+description: Deploys the Azure DNS Private Resolver with some Private DNS Zones
+runner: ARM
+templatePath: azuredeploy.json
