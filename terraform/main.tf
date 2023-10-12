@@ -43,6 +43,12 @@ resource "azapi_resource" "dct" {
   }
 }
 
+resource "azurerm_role_assignment" "owner" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  principal_id         = azapi_resource.dct.identity[0].principal_id
+  role_definition_name = "Owner"
+}
+
 resource "azurerm_role_assignment" "key_vault_secrets_user" {
   scope                = azurerm_key_vault_secret.github_personal_access_token.resource_versionless_id
   principal_id         = azapi_resource.dct.identity[0].principal_id
@@ -115,6 +121,75 @@ resource "azapi_resource" "project_02" {
   body = jsonencode({
     properties = {
       devCenterId = azapi_resource.dct.id
+    }
+  })
+}
+
+resource "azapi_resource" "project_01_development" {
+  type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
+  name      = azapi_resource.development.name
+  location  = azurerm_resource_group.rg.location
+  parent_id = azapi_resource.project_01.id
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  body = jsonencode({
+    properties = {
+      deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+      status              = "Enabled"
+      creatorRoleAssignment = {
+        roles = {
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+        }
+      }
+    }
+  })
+}
+
+resource "azapi_resource" "project_01_production" {
+  type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
+  name      = azapi_resource.production.name
+  location  = azurerm_resource_group.rg.location
+  parent_id = azapi_resource.project_01.id
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  body = jsonencode({
+    properties = {
+      deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+      status              = "Enabled"
+      creatorRoleAssignment = {
+        roles = {
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+        }
+      }
+    }
+  })
+}
+
+resource "azapi_resource" "project_02_production" {
+  type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
+  name      = azapi_resource.production.name
+  location  = azurerm_resource_group.rg.location
+  parent_id = azapi_resource.project_02.id
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  body = jsonencode({
+    properties = {
+      deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+      status              = "Enabled"
+      creatorRoleAssignment = {
+        roles = {
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+        }
+      }
     }
   })
 }
