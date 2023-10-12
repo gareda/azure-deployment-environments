@@ -66,7 +66,7 @@ resource "azapi_resource" "microsoft_example" {
 }
 
 resource "azapi_resource" "cumtom_example" {
-  name      = "MicrosoftExample"
+  name      = "CustomExample"
   type      = "Microsoft.DevCenter/devcenters/catalogs@${local.api_version}"
   parent_id = azapi_resource.dct.id
   body = jsonencode({
