@@ -106,6 +106,7 @@ resource "azapi_resource" "project_01" {
   type      = "Microsoft.DevCenter/projects@${local.api_version}"
   parent_id = azurerm_resource_group.rg.id
   location  = azurerm_resource_group.rg.location
+  tags      = azurerm_resource_group.rg.tags
   body = jsonencode({
     properties = {
       devCenterId = azapi_resource.dct.id
@@ -118,6 +119,7 @@ resource "azapi_resource" "project_02" {
   type      = "Microsoft.DevCenter/projects@${local.api_version}"
   parent_id = azurerm_resource_group.rg.id
   location  = azurerm_resource_group.rg.location
+  tags      = azurerm_resource_group.rg.tags
   body = jsonencode({
     properties = {
       devCenterId = azapi_resource.dct.id
@@ -128,8 +130,8 @@ resource "azapi_resource" "project_02" {
 resource "azapi_resource" "project_01_development" {
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   name      = azapi_resource.development.name
-  location  = azurerm_resource_group.rg.location
   parent_id = azapi_resource.project_01.id
+  location  = azurerm_resource_group.rg.location
 
   identity {
     type = "SystemAssigned"
@@ -138,10 +140,10 @@ resource "azapi_resource" "project_01_development" {
   body = jsonencode({
     properties = {
       deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-      status              = "Enabled"
+      status             = "Enabled"
       creatorRoleAssignment = {
         roles = {
-          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} # Contributor
         }
       }
     }
@@ -161,10 +163,10 @@ resource "azapi_resource" "project_01_production" {
   body = jsonencode({
     properties = {
       deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-      status              = "Enabled"
+      status             = "Enabled"
       creatorRoleAssignment = {
         roles = {
-          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} # Contributor
         }
       }
     }
@@ -184,10 +186,10 @@ resource "azapi_resource" "project_02_production" {
   body = jsonencode({
     properties = {
       deploymentTargetId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-      status              = "Enabled"
+      status             = "Enabled"
       creatorRoleAssignment = {
         roles = {
-          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} // Contributor
+          "b24988ac-6180-42a0-ab88-20f7382dd24c" : {} # Contributor
         }
       }
     }
