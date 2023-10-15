@@ -1,0 +1,29 @@
+name: WebAppWithDDBB
+version: 1.0.0
+summary: Deploys the WebApp with DDBB
+description: Deploys the WebApp with DDBB Flexible Server
+runner: ARM
+templatePath: main.json
+
+parameters:
+  - id: sku
+    name: Sku
+    description: "Sku of the Web App"
+    type: string
+    allowed:
+      - Y1
+      - B1
+      - B2
+      - B3
+      - S1
+      - S2
+      - S3
+
+  - id: database
+    name: Database
+    description: "Type of database"
+    type: string
+    allowed:
+      - None
+      - MySql
+      - PostgreSQL

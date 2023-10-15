@@ -1,0 +1,87 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.22.6.54827",
+      "templateHash": "3827705028789720469"
+    }
+  },
+  "parameters": {
+    "sku": {
+      "type": "string"
+    },
+    "database": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "name": "[resourceGroup().name]",
+    "location": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}asp', variables('name'))]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "[parameters('sku')]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}app', variables('name'))]",
+      "location": "[variables('location')]",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}asp', variables('name')))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}asp', variables('name')))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('database'), 'MySql')]",
+      "type": "Microsoft.DBforMySQL/flexibleServers",
+      "apiVersion": "2023-06-30",
+      "name": "[format('{0}mysqlfs', variables('name'))]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "version": "8.0.21",
+        "administratorLogin": "adminmysql",
+        "administratorLoginPassword": "P4$$w0rd1234",
+        "backup": {
+          "backupRetentionDays": 30
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('database'), 'PostgreSQL')]",
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2022-12-01",
+      "name": "[format('{0}postgrefs', variables('name'))]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "version": "15",
+        "administratorLogin": "adminpostgre",
+        "administratorLoginPassword": "P4$$w0rd1234",
+        "storage": {
+          "storageSizeGB": 32
+        },
+        "backup": {
+          "backupRetentionDays": 30
+        }
+      }
+    }
+  ]
+}
