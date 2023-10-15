@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "9594411581623183070"
+      "templateHash": "5043073528647301846"
     }
   },
   "variables": {
@@ -88,7 +88,7 @@
     },
     {
       "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2019-11-01",
+      "apiVersion": "2023-05-01",
       "name": "[format('{0}vnet', variables('name'))]",
       "location": "[variables('location')]",
       "properties": {
@@ -131,7 +131,7 @@
     },
     {
       "type": "Microsoft.Network/routeTables",
-      "apiVersion": "2023-04-01",
+      "apiVersion": "2023-05-01",
       "name": "[format('{0}rt', variables('name'))]",
       "location": "[variables('location')]",
       "properties": {
@@ -140,7 +140,7 @@
     },
     {
       "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-04-01",
+      "apiVersion": "2023-05-01",
       "name": "[format('{0}nsg', variables('name'))]",
       "location": "[variables('location')]",
       "properties": {

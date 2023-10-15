@@ -8,7 +8,7 @@ var zones = [
   'privatelink.postgres.database.azure.com'
 ]
 
-resource vnet 'Microsoft.Network/virtualNetworks@2019-11-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   name: '${name}vnet'
   location: location
   properties: {
@@ -45,7 +45,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   }
 }
 
-resource rt 'Microsoft.Network/routeTables@2023-04-01' = {
+resource rt 'Microsoft.Network/routeTables@2023-05-01' = {
   name: '${name}rt'
   location: location
   properties: {
@@ -53,7 +53,7 @@ resource rt 'Microsoft.Network/routeTables@2023-04-01' = {
   }
 }
 
-resource nsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
+resource nsg 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
   name: '${name}nsg'
   location: location
   properties: {
