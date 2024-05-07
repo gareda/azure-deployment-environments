@@ -1,18 +1,22 @@
 repos:
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.83.5
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.40.0
     hooks:
-      - id: tfupdate
-        name: Update Terraform version
-        args:
-          - --args=terraform -v >=1.3.0
+      - id: markdownlint
+        name: Validate Markdown text
 
-      - id: tfupdate
-        name: Update Terraform's azurerm provider
-        args:
-          - --args=provider azurerm
-          - --args=--version ~>3.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+        name: Makes sure files end in a newline and only a newline
 
+      - id: check-merge-conflict
+        name: Check for files that contain merge conflict strings
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.89.1
+    hooks:
       - id: terraform_fmt
         name: Format Terraform code
 
@@ -21,6 +25,7 @@ repos:
         args:
           - --tf-init-args=-upgrade
           - --tf-init-args=-backend=false
+          - --hook-config=--retry-once-with-cleanup=true
 
       - id: terraform_tflint
         name: Validate Terraform tests
@@ -28,12 +33,3 @@ repos:
           - --args=--enable-rule=terraform_naming_convention
           - --args=--enable-rule=terraform_unused_required_providers
           - --args=--module
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: check-merge-conflict
-        name: Check for files that contain merge conflict strings
-
-      - id: end-of-file-fixer
-        name: Makes sure files end in a newline and only a newline
