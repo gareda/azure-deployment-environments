@@ -9,8 +9,7 @@
         "ghcr.io/devcontainers/features/terraform:1": {
             "installTerraformDocs": true,
             "version": "latest",
-            "tflint": "latest",
-            "terragrunt": "latest"
+            "tflint": "latest"
         },
         "ghcr.io/devcontainers-contrib/features/pre-commit:2": {
             "version": "latest"
@@ -20,14 +19,16 @@
         }
     },
     "onCreateCommand": "pre-commit install",
-    "postAttachCommand": "pre-commit autoupdate && pre-commit install-hooks",
     "customizations": {
         "vscode": {
             "extensions": [
                 "azapi-vscode.azapi",
+                "bierner.markdown-emoji",
                 "bierner.markdown-preview-github-styles",
                 "christian-kohler.path-intellisense",
                 "DavidAnson.vscode-markdownlint",
+                "GitHub.copilot",
+                "GitHub.copilot-chat",
                 "ktasper.tf-registry-search",
                 "hashicorp.hcl",
                 "hashicorp.terraform",

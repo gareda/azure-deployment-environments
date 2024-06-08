@@ -1,13 +1,21 @@
 data "azurerm_client_config" "current" {}
 
+#################### RESOURCE GROUP
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group
+
 resource "azurerm_resource_group" "rg" {
-  name     = "${local.name}rg-01"
+  name     = local.name
   location = "West Europe"
   tags     = {}
 }
 
+#################### KEY VAULT
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret
+
 resource "azurerm_key_vault" "kv" {
-  name                      = "${local.name}kv"
+  name                      = "${local.name}-kv"
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   tags                      = azurerm_resource_group.rg.tags
@@ -30,8 +38,12 @@ resource "azurerm_key_vault_secret" "github_personal_access_token" {
   value        = var.github_personal_access_token
 }
 
+#################### VIRTUAL NETWORK
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet
+
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${local.name}vnet"
+  name                = "${local.name}-vnet"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
@@ -39,129 +51,116 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 resource "azurerm_subnet" "databox" {
-  name                                      = "databox"
-  resource_group_name                       = azurerm_virtual_network.vnet.resource_group_name
-  virtual_network_name                      = azurerm_virtual_network.vnet.name
-  address_prefixes                          = [cidrsubnet(azurerm_virtual_network.vnet.address_space[0], 0, 0)]
-  private_endpoint_network_policies_enabled = true
+  name                              = "databox"
+  resource_group_name               = azurerm_virtual_network.vnet.resource_group_name
+  virtual_network_name              = azurerm_virtual_network.vnet.name
+  address_prefixes                  = [cidrsubnet(azurerm_virtual_network.vnet.address_space[0], 0, 0)]
+  private_endpoint_network_policies = "Enabled"
 }
 
-resource "azapi_resource" "dct" {
-  name      = "${local.name}dct"
-  type      = "Microsoft.DevCenter/devcenters@${local.api_version}"
-  parent_id = azurerm_resource_group.rg.id
-  location  = azurerm_resource_group.rg.location
-  tags      = azurerm_resource_group.rg.tags
+#################### DEV CENTER
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
+
+resource "azurerm_dev_center" "dct" {
+  name                = "${local.name}-dct"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  tags                = azurerm_resource_group.rg.tags
 
   identity {
-    type         = "SystemAssigned"
-    identity_ids = []
+    type = "SystemAssigned"
   }
 }
 
 resource "azurerm_role_assignment" "owner" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-  principal_id         = azapi_resource.dct.identity[0].principal_id
+  principal_id         = azurerm_dev_center.dct.identity[0].principal_id
   role_definition_name = "Owner"
 }
 
 resource "azurerm_role_assignment" "key_vault_secrets_user" {
   scope                = azurerm_key_vault_secret.github_personal_access_token.resource_versionless_id
-  principal_id         = azapi_resource.dct.identity[0].principal_id
+  principal_id         = azurerm_dev_center.dct.identity[0].principal_id
   role_definition_name = "Key Vault Secrets User"
 }
 
-resource "azapi_resource" "nc" {
-  name      = "${local.name}nc"
-  type      = "Microsoft.DevCenter/networkConnections@${local.api_version}"
-  parent_id = azapi_resource.dct.id
-  location  = azurerm_resource_group.rg.location
-  tags      = azurerm_resource_group.rg.tags
-  body = {
-    properties = {
-      domainJoinType              = "AzureADJoin"
-      networkingResourceGroupName = "${local.name}rg-01"
-      subnetId                    = azurerm_subnet.databox.id
-    }
+# resource "azapi_resource" "nc" {
+#   name      = "${local.name}-nc"
+#   type      = "Microsoft.DevCenter/networkConnections@${local.api_version}"
+#   parent_id = azurerm_dev_center.dct.id
+#   location  = azurerm_resource_group.rg.location
+#   tags      = azurerm_resource_group.rg.tags
+
+#   body = {
+#     properties = {
+#       domainJoinType              = "AzureADJoin"
+#       networkingResourceGroupName = "${local.name}rg-01"
+#       subnetId                    = azurerm_subnet.databox.id
+#     }
+#   }
+# }
+
+resource "azurerm_dev_center_catalog" "microsoft_example" {
+  name                = "MicrosoftExample"
+  resource_group_name = azurerm_dev_center.dct.resource_group_name
+  dev_center_id       = azurerm_dev_center.dct.id
+
+  catalog_github {
+    uri               = "https://github.com/Azure/deployment-environments.git"
+    branch            = "main"
+    path              = "/Environments"
+    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
   }
 }
 
-resource "azapi_resource" "microsoft_example" {
-  name      = "MicrosoftExample"
-  type      = "Microsoft.DevCenter/devcenters/catalogs@${local.api_version}"
-  parent_id = azapi_resource.dct.id
-  body = {
-    properties = {
-      gitHub = {
-        uri              = "https://github.com/Azure/deployment-environments.git"
-        branch           = "main"
-        path             = "/Environments"
-        secretIdentifier = azurerm_key_vault_secret.github_personal_access_token.id
-      }
-    }
-  }
-}
+resource "azurerm_dev_center_catalog" "cumtom_example" {
+  name                = "CustomExample"
+  resource_group_name = azurerm_dev_center.dct.resource_group_name
+  dev_center_id       = azurerm_dev_center.dct.id
 
-resource "azapi_resource" "cumtom_example" {
-  name      = "CustomExample"
-  type      = "Microsoft.DevCenter/devcenters/catalogs@${local.api_version}"
-  parent_id = azapi_resource.dct.id
-  body = {
-    properties = {
-      gitHub = {
-        uri              = "https://github.com/gareda/azure-deployment-environments.git"
-        branch           = "main"
-        path             = "/templates"
-        secretIdentifier = azurerm_key_vault_secret.github_personal_access_token.id
-      }
-    }
+  catalog_github {
+    uri               = "https://github.com/gareda/azure-deployment-environments.git"
+    branch            = "main"
+    path              = "/templates"
+    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
   }
 }
 
 resource "azapi_resource" "development" {
   name      = "development"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
-  parent_id = azapi_resource.dct.id
+  parent_id = azurerm_dev_center.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
 resource "azapi_resource" "production" {
   name      = "production"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
-  parent_id = azapi_resource.dct.id
+  parent_id = azurerm_dev_center.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
-resource "azapi_resource" "project_01" {
-  name      = "project01"
-  type      = "Microsoft.DevCenter/projects@${local.api_version}"
-  parent_id = azurerm_resource_group.rg.id
-  location  = azurerm_resource_group.rg.location
-  tags      = azurerm_resource_group.rg.tags
-  body = {
-    properties = {
-      devCenterId = azapi_resource.dct.id
-    }
-  }
+resource "azurerm_dev_center_project" "project_01" {
+  name                = "project01"
+  dev_center_id       = azurerm_dev_center.dct.id
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  tags                = azurerm_resource_group.rg.tags
 }
 
-resource "azapi_resource" "project_02" {
-  name      = "project02"
-  type      = "Microsoft.DevCenter/projects@${local.api_version}"
-  parent_id = azurerm_resource_group.rg.id
-  location  = azurerm_resource_group.rg.location
-  tags      = azurerm_resource_group.rg.tags
-  body = {
-    properties = {
-      devCenterId = azapi_resource.dct.id
-    }
-  }
+resource "azurerm_dev_center_project" "project_02" {
+  name                = "project02"
+  dev_center_id       = azurerm_dev_center.dct.id
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  tags                = azurerm_resource_group.rg.tags
 }
 
 resource "azapi_resource" "project_01_development" {
   name      = azapi_resource.development.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
-  parent_id = azapi_resource.project_01.id
+  parent_id = azurerm_dev_center_project.project_01.id
   location  = azurerm_resource_group.rg.location
 
   identity {
@@ -185,7 +184,7 @@ resource "azapi_resource" "project_01_production" {
   name      = azapi_resource.production.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azapi_resource.project_01.id
+  parent_id = azurerm_dev_center_project.project_01.id
 
   identity {
     type = "SystemAssigned"
@@ -208,7 +207,7 @@ resource "azapi_resource" "project_02_production" {
   name      = azapi_resource.production.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azapi_resource.project_02.id
+  parent_id = azurerm_dev_center_project.project_02.id
 
   identity {
     type = "SystemAssigned"

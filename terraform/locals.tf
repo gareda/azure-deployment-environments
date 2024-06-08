@@ -1,4 +1,4 @@
 locals {
-  name        = "azdpmtenv-"
-  api_version = "2023-04-01"
+  name        = "dotnet2024"
+  api_version = "2024-05-01-preview"
 }
