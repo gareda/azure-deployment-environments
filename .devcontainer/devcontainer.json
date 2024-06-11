@@ -1,5 +1,5 @@
 {
-    "name": "DevCenter",
+    "name": "Dotnet2024DevCenter",
     "image": "mcr.microsoft.com/devcontainers/base:jammy",
     "features": {
         "ghcr.io/devcontainers/features/azure-cli:1": {
