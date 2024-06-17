@@ -4,8 +4,8 @@ data "azurerm_client_config" "current" {}
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group
 
 resource "azurerm_resource_group" "rg" {
-  name     = local.name
-  location = "West Europe"
+  name     = "${local.name}rg-01"
+  location = "North Europe"
   tags     = {}
 }
 
@@ -15,7 +15,7 @@ resource "azurerm_resource_group" "rg" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret
 
 resource "azurerm_key_vault" "kv" {
-  name                      = "${local.name}-kv"
+  name                      = "${local.name}kv-01"
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   tags                      = azurerm_resource_group.rg.tags
@@ -43,19 +43,18 @@ resource "azurerm_key_vault_secret" "github_personal_access_token" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${local.name}-vnet"
+  name                = "${local.name}vnet-01"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
   address_space       = ["10.0.0.0/24"]
 }
 
-resource "azurerm_subnet" "databox" {
-  name                              = "databox"
-  resource_group_name               = azurerm_virtual_network.vnet.resource_group_name
-  virtual_network_name              = azurerm_virtual_network.vnet.name
-  address_prefixes                  = [cidrsubnet(azurerm_virtual_network.vnet.address_space[0], 0, 0)]
-  private_endpoint_network_policies = "Enabled"
+resource "azurerm_subnet" "dev_box_networking" {
+  name                 = "dev-box-networking"
+  resource_group_name  = azurerm_virtual_network.vnet.resource_group_name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [cidrsubnet(azurerm_virtual_network.vnet.address_space[0], 0, 0)]
 }
 
 #################### DEV CENTER
@@ -63,7 +62,7 @@ resource "azurerm_subnet" "databox" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
 
 resource "azurerm_dev_center" "dct" {
-  name                = "${local.name}-dct"
+  name                = "${local.name}dct-01"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
@@ -85,21 +84,81 @@ resource "azurerm_role_assignment" "key_vault_secrets_user" {
   role_definition_name = "Key Vault Secrets User"
 }
 
-# resource "azapi_resource" "nc" {
-#   name      = "${local.name}-nc"
-#   type      = "Microsoft.DevCenter/networkConnections@${local.api_version}"
-#   parent_id = azurerm_dev_center.dct.id
-#   location  = azurerm_resource_group.rg.location
-#   tags      = azurerm_resource_group.rg.tags
+#################### DEV CENTER - DEV BOX CONFIGURATION
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/networkconnections
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters/attachednetworks
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/shared_image_gallery
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters/galleries
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters/devboxdefinitions
 
-#   body = {
-#     properties = {
-#       domainJoinType              = "AzureADJoin"
-#       networkingResourceGroupName = "${local.name}rg-01"
-#       subnetId                    = azurerm_subnet.databox.id
-#     }
-#   }
-# }
+resource "azapi_resource" "nc" {
+  name      = "${local.name}nc-01"
+  type      = "Microsoft.DevCenter/networkConnections@${local.api_version}"
+  parent_id = azurerm_resource_group.rg.id
+  location  = azurerm_resource_group.rg.location
+  tags      = azurerm_resource_group.rg.tags
+
+  body = {
+    properties = {
+      domainJoinType              = "AzureADJoin"
+      networkingResourceGroupName = "${local.name}rg-02"
+      subnetId                    = azurerm_subnet.dev_box_networking.id
+    }
+  }
+}
+
+resource "azapi_resource" "dct_connect_nc" {
+  name      = "${local.name}nc-01"
+  type      = "Microsoft.DevCenter/devcenters/attachednetworks@${local.api_version}"
+  parent_id = azurerm_dev_center.dct.id
+
+  body = {
+    properties = {
+      networkConnectionId = azapi_resource.nc.id
+    }
+  }
+}
+
+resource "azurerm_shared_image_gallery" "shg" {
+  name                = "${replace(local.name, "-", "")}shg01"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  tags                = azurerm_resource_group.rg.tags
+}
+
+resource "azapi_resource" "dct_connect_shg" {
+  name      = "${replace(local.name, "-", "")}shg01"
+  type      = "Microsoft.DevCenter/devcenters/galleries@${local.api_version}"
+  parent_id = azurerm_dev_center.dct.id
+
+  body = {
+    properties = {
+      galleryResourceId = azurerm_shared_image_gallery.shg.id
+    }
+  }
+}
+
+resource "azapi_resource" "dbd" {
+  name      = "workspaces"
+  type      = "Microsoft.DevCenter/devcenters/devboxdefinitions@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azurerm_dev_center.dct.id
+
+  body = {
+    properties = {
+      imageReference = {
+        id = "${azurerm_dev_center.dct.id}/galleries/default/images/microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win11-m365-gen2"
+      },
+      sku = {
+        name = "general_i_16c64gb256ssd_v2"
+      },
+      hibernateSupport = "Disabled"
+    }
+  }
+}
+
+#################### DEV CENTER - ENVIRONMENT CONFIGURATION
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_catalogs
 
 resource "azurerm_dev_center_catalog" "microsoft_example" {
   name                = "MicrosoftExample"
@@ -127,40 +186,45 @@ resource "azurerm_dev_center_catalog" "cumtom_example" {
   }
 }
 
-resource "azapi_resource" "development" {
-  name      = "development"
+resource "azapi_resource" "develop" {
+  name      = "develop"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
   parent_id = azurerm_dev_center.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
-resource "azapi_resource" "production" {
-  name      = "production"
+resource "azapi_resource" "sandbox" {
+  name      = "sandbox"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
   parent_id = azurerm_dev_center.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
-resource "azurerm_dev_center_project" "project_01" {
-  name                = "project01"
-  dev_center_id       = azurerm_dev_center.dct.id
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  tags                = azurerm_resource_group.rg.tags
+#################### DEV CENTER - PROJECTS
+# 
+
+resource "azurerm_dev_center_project" "madrid" {
+  name                       = "${azurerm_resource_group.rg.name}-madrid"
+  dev_center_id              = azurerm_dev_center.dct.id
+  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = azurerm_resource_group.rg.location
+  tags                       = azurerm_resource_group.rg.tags
+  maximum_dev_boxes_per_user = 1
 }
 
-resource "azurerm_dev_center_project" "project_02" {
-  name                = "project02"
-  dev_center_id       = azurerm_dev_center.dct.id
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  tags                = azurerm_resource_group.rg.tags
+resource "azurerm_dev_center_project" "barcelona" {
+  name                       = "${azurerm_resource_group.rg.name}-barcelona"
+  dev_center_id              = azurerm_dev_center.dct.id
+  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = azurerm_resource_group.rg.location
+  tags                       = azurerm_resource_group.rg.tags
+  maximum_dev_boxes_per_user = 1
 }
 
-resource "azapi_resource" "project_01_development" {
-  name      = azapi_resource.development.name
+resource "azapi_resource" "madrid_develop" {
+  name      = azapi_resource.develop.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
-  parent_id = azurerm_dev_center_project.project_01.id
+  parent_id = azurerm_dev_center_project.madrid.id
   location  = azurerm_resource_group.rg.location
 
   identity {
@@ -180,11 +244,11 @@ resource "azapi_resource" "project_01_development" {
   }
 }
 
-resource "azapi_resource" "project_01_production" {
-  name      = azapi_resource.production.name
+resource "azapi_resource" "madrid_sandbox" {
+  name      = azapi_resource.sandbox.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.project_01.id
+  parent_id = azurerm_dev_center_project.madrid.id
 
   identity {
     type = "SystemAssigned"
@@ -203,11 +267,11 @@ resource "azapi_resource" "project_01_production" {
   }
 }
 
-resource "azapi_resource" "project_02_production" {
-  name      = azapi_resource.production.name
+resource "azapi_resource" "barcelona_develop" {
+  name      = azapi_resource.develop.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.project_02.id
+  parent_id = azurerm_dev_center_project.barcelona.id
 
   identity {
     type = "SystemAssigned"
@@ -223,5 +287,52 @@ resource "azapi_resource" "project_02_production" {
         }
       }
     }
+  }
+}
+
+#################### DEV CENTER - PROJECTS - MANAGE
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/projects/pools
+
+resource "azapi_resource" "visual_studio_external" {
+  name      = "external-network"
+  type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azurerm_dev_center_project.madrid.id
+
+  body = {
+    properties = {
+      displayName           = "Visual Studio External"
+      devBoxDefinitionName  = azapi_resource.dbd.name
+      networkConnectionName = azapi_resource.nc.name
+      licenseType           = "Windows_Client"
+      localAdministrator    = "Enabled"
+      singleSignOnStatus    = "Enabled"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [tags["hidden-title"]]
+  }
+}
+
+resource "azapi_resource" "visual_studio_internal" {
+  name      = "internal-network"
+  type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azurerm_dev_center_project.madrid.id
+
+  body = {
+    properties = {
+      displayName           = "Visual Studio Internal"
+      devBoxDefinitionName  = azapi_resource.dbd.name
+      networkConnectionName = azapi_resource.nc.name
+      licenseType           = "Windows_Client"
+      localAdministrator    = "Enabled"
+      singleSignOnStatus    = "Enabled"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [tags["hidden-title"]]
   }
 }
