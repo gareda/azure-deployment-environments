@@ -1,4 +1,4 @@
-name: AzureMachineLearningWithAI
+name: Azure-Machine-Learning-with-AI
 version: 1.0.0
 summary: Azure Machine Learning with AI
 description: Deploys Azure Machine Learning with Azure Open AI
@@ -13,12 +13,3 @@ parameters:
       - Basic
       - Standard
       - Premium
-
-  - id: database
-    name: Database
-    description: "Type of database"
-    type: string
-    allowed:
-      - None
-      - MySql
-      - PostgreSQL

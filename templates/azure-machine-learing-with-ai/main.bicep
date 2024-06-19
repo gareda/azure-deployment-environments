@@ -1,7 +1,7 @@
 var name = resourceGroup().name
 var location = resourceGroup().location
 
-param sku string = 'Basic'
+param sku string
 
 resource log 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${name}-log'
