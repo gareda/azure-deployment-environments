@@ -4,7 +4,7 @@ data "azurerm_client_config" "current" {}
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group
 
 resource "azurerm_resource_group" "rg" {
-  name     = "${local.name}rg-01"
+  name     = local.name
   location = "North Europe"
   tags     = {}
 }
@@ -15,7 +15,7 @@ resource "azurerm_resource_group" "rg" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret
 
 resource "azurerm_key_vault" "kv" {
-  name                      = "${local.name}kv-01"
+  name                      = "${local.name}-kv-01"
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   tags                      = azurerm_resource_group.rg.tags
@@ -43,7 +43,7 @@ resource "azurerm_key_vault_secret" "github_personal_access_token" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${local.name}vnet-01"
+  name                = "${local.name}-vnet-01"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
@@ -62,7 +62,7 @@ resource "azurerm_subnet" "dev_box_networking" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
 
 resource "azurerm_dev_center" "dct" {
-  name                = "${local.name}dct-01"
+  name                = "${local.name}-dct-01"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
@@ -92,7 +92,7 @@ resource "azurerm_role_assignment" "key_vault_secrets_user" {
 # https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters/devboxdefinitions
 
 resource "azapi_resource" "nc" {
-  name      = "${local.name}nc-01"
+  name      = "${local.name}-nc-01"
   type      = "Microsoft.DevCenter/networkConnections@${local.api_version}"
   parent_id = azurerm_resource_group.rg.id
   location  = azurerm_resource_group.rg.location
@@ -101,14 +101,14 @@ resource "azapi_resource" "nc" {
   body = {
     properties = {
       domainJoinType              = "AzureADJoin"
-      networkingResourceGroupName = "${local.name}rg-02"
+      networkingResourceGroupName = "${local.name}-network"
       subnetId                    = azurerm_subnet.dev_box_networking.id
     }
   }
 }
 
 resource "azapi_resource" "dct_connect_nc" {
-  name      = "${local.name}nc-01"
+  name      = "${local.name}-nc-01"
   type      = "Microsoft.DevCenter/devcenters/attachednetworks@${local.api_version}"
   parent_id = azurerm_dev_center.dct.id
 
@@ -212,8 +212,8 @@ resource "azurerm_dev_center_project" "madrid" {
   maximum_dev_boxes_per_user = 1
 }
 
-resource "azurerm_dev_center_project" "barcelona" {
-  name                       = "${azurerm_resource_group.rg.name}-barcelona"
+resource "azurerm_dev_center_project" "malaga" {
+  name                       = "${azurerm_resource_group.rg.name}-malaga"
   dev_center_id              = azurerm_dev_center.dct.id
   resource_group_name        = azurerm_resource_group.rg.name
   location                   = azurerm_resource_group.rg.location
@@ -267,11 +267,11 @@ resource "azapi_resource" "madrid_sandbox" {
   }
 }
 
-resource "azapi_resource" "barcelona_develop" {
+resource "azapi_resource" "malaga_develop" {
   name      = azapi_resource.develop.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.barcelona.id
+  parent_id = azurerm_dev_center_project.malaga.id
 
   identity {
     type = "SystemAssigned"
