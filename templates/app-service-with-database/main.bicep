@@ -4,7 +4,7 @@ var location = resourceGroup().location
 param sku string
 param database string
 
-resource asp 'Microsoft.Web/serverfarms@2022-09-01' = {
+resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${name}-asp'
   location: location
   sku: {
@@ -12,7 +12,7 @@ resource asp 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-resource app 'Microsoft.Web/sites@2022-09-01' = {
+resource app 'Microsoft.Web/sites@2023-12-01' = {
   name: '${name}-app'
   location: location
   properties: {
@@ -20,7 +20,7 @@ resource app 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = if (database == 'MySql') {
+resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-12-30' = if (database == 'MySql') {
   name: '${name}-mysqlfs'
   location: location
 

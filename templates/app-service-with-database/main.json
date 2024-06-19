@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.22.6.54827",
-      "templateHash": "3827705028789720469"
+      "version": "0.28.1.47646",
+      "templateHash": "9843147968014802631"
     }
   },
   "parameters": {
@@ -23,8 +23,8 @@
   "resources": [
     {
       "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2022-09-01",
-      "name": "[format('{0}asp', variables('name'))]",
+      "apiVersion": "2023-12-01",
+      "name": "[format('{0}-asp', variables('name'))]",
       "location": "[variables('location')]",
       "sku": {
         "name": "[parameters('sku')]"
@@ -32,21 +32,21 @@
     },
     {
       "type": "Microsoft.Web/sites",
-      "apiVersion": "2022-09-01",
-      "name": "[format('{0}app', variables('name'))]",
+      "apiVersion": "2023-12-01",
+      "name": "[format('{0}-app', variables('name'))]",
       "location": "[variables('location')]",
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}asp', variables('name')))]"
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('name')))]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', format('{0}asp', variables('name')))]"
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('name')))]"
       ]
     },
     {
       "condition": "[equals(parameters('database'), 'MySql')]",
       "type": "Microsoft.DBforMySQL/flexibleServers",
-      "apiVersion": "2023-06-30",
-      "name": "[format('{0}mysqlfs', variables('name'))]",
+      "apiVersion": "2023-12-30",
+      "name": "[format('{0}-mysqlfs', variables('name'))]",
       "location": "[variables('location')]",
       "sku": {
         "name": "Standard_B1ms",
@@ -65,7 +65,7 @@
       "condition": "[equals(parameters('database'), 'PostgreSQL')]",
       "type": "Microsoft.DBforPostgreSQL/flexibleServers",
       "apiVersion": "2022-12-01",
-      "name": "[format('{0}postgrefs', variables('name'))]",
+      "name": "[format('{0}-postgrefs', variables('name'))]",
       "location": "[variables('location')]",
       "sku": {
         "name": "Standard_B1ms",
