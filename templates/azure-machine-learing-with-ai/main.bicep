@@ -1,4 +1,4 @@
-var name = resourceGroup().name
+var name = skip(resourceGroup().name, 16)
 var location = resourceGroup().location
 
 param sku string
@@ -53,7 +53,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
 
 resource st 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   #disable-next-line BCP334
-  name: '${replace(skip(name, 6), '-', '')}st'
+  name: '${replace(name, '-', '')}st'
   location: location
   kind: 'StorageV2'
   sku: {
