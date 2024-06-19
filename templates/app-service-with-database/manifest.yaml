@@ -9,6 +9,8 @@ parameters:
     name: App Service Sku
     description: "Sku of the App Service"
     type: string
+    required: true
+    default: B1
     allowed:
       - B1
       - B2
@@ -21,6 +23,8 @@ parameters:
     name: Database
     description: "Type of database"
     type: string
+    required: true
+    default: None
     allowed:
       - None
       - MySql

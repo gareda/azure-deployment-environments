@@ -9,6 +9,8 @@ parameters:
     name: Azure Container Registry Sku
     description: "Sku of the Azure Container Registry"
     type: string
+    required: true
+    default: Basic
     allowed:
       - Basic
       - Standard
