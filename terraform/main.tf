@@ -138,8 +138,8 @@ resource "azapi_resource" "dct_connect_shg" {
   }
 }
 
-resource "azapi_resource" "dbd" {
-  name      = "workspaces"
+resource "azapi_resource" "dbd_visual_studio" {
+  name      = "visual-studio"
   type      = "Microsoft.DevCenter/devcenters/devboxdefinitions@${local.api_version}"
   location  = azurerm_resource_group.rg.location
   parent_id = azurerm_dev_center.dct.id
@@ -150,7 +150,26 @@ resource "azapi_resource" "dbd" {
         id = "${azurerm_dev_center.dct.id}/galleries/default/images/microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win11-m365-gen2"
       },
       sku = {
-        name = "general_i_16c64gb256ssd_v2"
+        name = "general_i_8c32gb256ssd_v2"
+      },
+      hibernateSupport = "Disabled"
+    }
+  }
+}
+
+resource "azapi_resource" "dbd_sandbox" {
+  name      = "sandbox"
+  type      = "Microsoft.DevCenter/devcenters/devboxdefinitions@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azurerm_dev_center.dct.id
+
+  body = {
+    properties = {
+      imageReference = {
+        id = "${azurerm_dev_center.dct.id}/galleries/default/images/microsoftwindowsdesktop_windows-ent-cpc_win11-22h2-ent-cpc-os"
+      },
+      sku = {
+        name = "general_i_8c32gb256ssd_v2"
       },
       hibernateSupport = "Disabled"
     }
@@ -160,8 +179,8 @@ resource "azapi_resource" "dbd" {
 #################### DEV CENTER - ENVIRONMENT CONFIGURATION
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_catalogs
 
-resource "azurerm_dev_center_catalog" "microsoft_example" {
-  name                = "MicrosoftExample"
+resource "azurerm_dev_center_catalog" "azure_examples" {
+  name                = "AzureExamples"
   resource_group_name = azurerm_dev_center.dct.resource_group_name
   dev_center_id       = azurerm_dev_center.dct.id
 
@@ -173,8 +192,21 @@ resource "azurerm_dev_center_catalog" "microsoft_example" {
   }
 }
 
+resource "azurerm_dev_center_catalog" "microsoft_task_examples" {
+  name                = "MicrosoftExamples"
+  resource_group_name = azurerm_dev_center.dct.resource_group_name
+  dev_center_id       = azurerm_dev_center.dct.id
+
+  catalog_github {
+    uri               = "https://github.com/microsoft/devcenter-catalog.git"
+    branch            = "main"
+    path              = "/Tasks"
+    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
+  }
+}
+
 resource "azurerm_dev_center_catalog" "cumtom_example" {
-  name                = "CustomExample"
+  name                = "CustomExamples"
   resource_group_name = azurerm_dev_center.dct.resource_group_name
   dev_center_id       = azurerm_dev_center.dct.id
 
@@ -201,7 +233,8 @@ resource "azapi_resource" "sandbox" {
 }
 
 #################### DEV CENTER - PROJECTS
-# 
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/projects/environmenttypes
 
 resource "azurerm_dev_center_project" "madrid" {
   name                       = "${azurerm_resource_group.rg.name}-madrid"
@@ -209,7 +242,7 @@ resource "azurerm_dev_center_project" "madrid" {
   resource_group_name        = azurerm_resource_group.rg.name
   location                   = azurerm_resource_group.rg.location
   tags                       = azurerm_resource_group.rg.tags
-  maximum_dev_boxes_per_user = 1
+  maximum_dev_boxes_per_user = 2
 }
 
 resource "azurerm_dev_center_project" "malaga" {
@@ -294,7 +327,7 @@ resource "azapi_resource" "malaga_develop" {
 # https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/projects/pools
 
 resource "azapi_resource" "visual_studio_external" {
-  name      = "external-network"
+  name      = "vs-external-network"
   type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
   location  = azurerm_resource_group.rg.location
   parent_id = azurerm_dev_center_project.madrid.id
@@ -302,7 +335,7 @@ resource "azapi_resource" "visual_studio_external" {
   body = {
     properties = {
       displayName           = "Visual Studio External"
-      devBoxDefinitionName  = azapi_resource.dbd.name
+      devBoxDefinitionName  = azapi_resource.dbd_visual_studio.name
       networkConnectionName = azapi_resource.nc.name
       licenseType           = "Windows_Client"
       localAdministrator    = "Enabled"
@@ -316,7 +349,7 @@ resource "azapi_resource" "visual_studio_external" {
 }
 
 resource "azapi_resource" "visual_studio_internal" {
-  name      = "internal-network"
+  name      = "vs-internal-network"
   type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
   location  = azurerm_resource_group.rg.location
   parent_id = azurerm_dev_center_project.madrid.id
@@ -324,7 +357,29 @@ resource "azapi_resource" "visual_studio_internal" {
   body = {
     properties = {
       displayName           = "Visual Studio Internal"
-      devBoxDefinitionName  = azapi_resource.dbd.name
+      devBoxDefinitionName  = azapi_resource.dbd_visual_studio.name
+      networkConnectionName = azapi_resource.nc.name
+      licenseType           = "Windows_Client"
+      localAdministrator    = "Enabled"
+      singleSignOnStatus    = "Enabled"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [tags["hidden-title"]]
+  }
+}
+
+resource "azapi_resource" "sandbox_external" {
+  name      = "sb-external-network"
+  type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azurerm_dev_center_project.madrid.id
+
+  body = {
+    properties = {
+      displayName           = "Sandbox External"
+      devBoxDefinitionName  = azapi_resource.dbd_sandbox.name
       networkConnectionName = azapi_resource.nc.name
       licenseType           = "Windows_Client"
       localAdministrator    = "Enabled"
