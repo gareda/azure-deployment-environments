@@ -5,7 +5,7 @@ param sku string
 param database string
 
 resource asp 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: '${name}asp'
+  name: '${name}-asp'
   location: location
   sku: {
     name: sku
@@ -13,7 +13,7 @@ resource asp 'Microsoft.Web/serverfarms@2022-09-01' = {
 }
 
 resource app 'Microsoft.Web/sites@2022-09-01' = {
-  name: '${name}app'
+  name: '${name}-app'
   location: location
   properties: {
     serverFarmId: asp.id
@@ -21,7 +21,7 @@ resource app 'Microsoft.Web/sites@2022-09-01' = {
 }
 
 resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = if (database == 'MySql') {
-  name: '${name}mysqlfs'
+  name: '${name}-mysqlfs'
   location: location
 
   sku: {
@@ -41,7 +41,7 @@ resource mysql 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = if (database 
 }
 
 resource postgre 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = if (database == 'PostgreSQL') {
-  name: '${name}postgrefs'
+  name: '${name}-postgrefs'
   location: location
 
   sku: {

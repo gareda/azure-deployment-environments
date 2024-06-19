@@ -1,10 +1,9 @@
-name: AppServiceWithDDBB
+name: App Service with database
 version: 1.0.0
-summary: Deploys the App Service with DDBB
-description: Deploys App Service with DDBB Flexible Server
+summary: App Service with Database
+description: Deploys App Service with Database Flexible Server
 runner: ARM
 templatePath: main.json
-
 parameters:
   - id: sku
     name: App Service Sku

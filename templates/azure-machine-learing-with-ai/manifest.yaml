@@ -1,0 +1,24 @@
+name: AzureMachineLearningWithAI
+version: 1.0.0
+summary: Azure Machine Learning with AI
+description: Deploys Azure Machine Learning with Azure Open AI
+runner: Bicep
+templatePath: main.bicep
+parameters:
+  - id: sku
+    name: Azure Container Registry Sku
+    description: "Sku of the Azure Container Registry"
+    type: string
+    allowed:
+      - Basic
+      - Standard
+      - Premium
+
+  - id: database
+    name: Database
+    description: "Type of database"
+    type: string
+    allowed:
+      - None
+      - MySql
+      - PostgreSQL

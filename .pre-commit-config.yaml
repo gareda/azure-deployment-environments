@@ -22,6 +22,7 @@ repos:
     rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
+        exclude_types: [json]
         name: Makes sure files end in a newline and only a newline
 
       - id: check-merge-conflict
