@@ -10,7 +10,6 @@ parameters:
     description: "Sku of the Azure Container Registry"
     type: string
     required: true
-    default: Basic
     allowed:
       - Basic
       - Standard
