@@ -1,4 +1,4 @@
-name: App Service with database
+name: App-Service-with-database
 version: 1.0.0
 summary: App Service with Database
 description: Deploys App Service with Database Flexible Server
