@@ -7,15 +7,18 @@
             "version": "latest"
         },
         "ghcr.io/devcontainers/features/terraform:1": {
-            "installTerraformDocs": true,
             "version": "latest",
-            "tflint": "latest"
+            "tflint": "latest",
+            "terragrunt": "latest"
         },
         "ghcr.io/devcontainers-contrib/features/pre-commit:2": {
             "version": "latest"
         },
         "ghcr.io/devcontainers-contrib/features/markdownlint-cli:1": {
             "version": "latest"
+        },
+        "ghcr.io/azure/azure-dev/azd:0": {
+            "version": "stable"
         }
     },
     "onCreateCommand": "pre-commit install",
@@ -32,6 +35,7 @@
                 "ktasper.tf-registry-search",
                 "hashicorp.hcl",
                 "hashicorp.terraform",
+                "ms-azuretools.azure-dev",
                 "ms-azuretools.vscode-bicep",
                 "redhat.vscode-yaml",
                 "vscode-icons-team.vscode-icons"
