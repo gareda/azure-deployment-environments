@@ -1,4 +1,4 @@
-var name = skip(resourceGroup().name, 16)
+var name = skip(resourceGroup().name, 17)
 var location = resourceGroup().location
 
 param sku string
