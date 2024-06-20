@@ -2,6 +2,7 @@ var name = skip(resourceGroup().name, 17)
 var location = resourceGroup().location
 
 param sku string
+param gpt string
 
 resource log 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${name}-log'
@@ -43,7 +44,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: subscription().tenantId
     accessPolicies: []
     enableRbacAuthorization: true
-    
+
     sku: {
       family: 'A'
       name: 'standard'
@@ -74,5 +75,33 @@ resource mlw 'Microsoft.MachineLearningServices/workspaces@2024-04-01' = {
     containerRegistry: cr.id
     keyVault: kv.id
     storageAccount: st.id
+  }
+}
+
+resource ai 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = if (gpt != 'None') {
+  name: '${name}-ai'
+  location: 'eastus'
+  kind: 'OpenAI'
+  sku: {
+    name: 'S0'
+  }
+}
+
+resource dplm 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = if (gpt != 'None') {
+  parent: ai
+  name: 'gpt-4o'
+  sku: {
+    name: 'Standard'
+    capacity: 10
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4o'
+      version: '2024-05-13'
+    }
+    versionUpgradeOption: 'OnceCurrentVersionExpired'
+    currentCapacity: 10
+    raiPolicyName: 'Microsoft.Default'
   }
 }

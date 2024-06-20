@@ -14,3 +14,12 @@ parameters:
       - Basic
       - Standard
       - Premium
+
+  - id: gpt
+    name: GPT model
+    description: "The type of GPT model to be deployed"
+    type: string
+    required: true
+    allowed:
+      - None
+      - GPT-4o

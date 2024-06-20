@@ -4,6 +4,28 @@ var location = resourceGroup().location
 param sku string
 param database string
 
+resource log 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${name}-log'
+  location: location
+
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+}
+
+resource appi 'Microsoft.Insights/components@2020-02-02' = {
+  name: '${name}-appi'
+  location: location
+  kind: 'web'
+
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: log.id
+  }
+}
+
 resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${name}-asp'
   location: location
