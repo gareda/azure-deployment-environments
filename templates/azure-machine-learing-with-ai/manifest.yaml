@@ -22,4 +22,6 @@ parameters:
     required: true
     allowed:
       - None
+      - Dall-e-3
+      - GPT-3.5-Turbo
       - GPT-4o

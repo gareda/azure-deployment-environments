@@ -87,7 +87,45 @@ resource ai 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = if (gpt 
   }
 }
 
-resource dplm 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = if (gpt != 'None') {
+resource dalle 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = if (gpt == 'Dall-e-3') {
+  parent: ai
+  name: 'dall-e-3'
+  sku: {
+    name: 'Standard'
+    capacity: 1
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'dall-e-3'
+      version: '3.0'
+    }
+    // versionUpgradeOption: 'OnceCurrentVersionExpired'
+    // currentCapacity: 10
+    // raiPolicyName: 'Microsoft.Default'
+  }
+}
+
+resource gpt35 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = if (gpt == 'GPT-3.5') {
+  parent: ai
+  name: 'gpt-3.5-turbo'
+  sku: {
+    name: 'Standard'
+    capacity: 120
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-35-turbo'
+      version: '0301'
+    }
+    // versionUpgradeOption: 'OnceCurrentVersionExpired'
+    // currentCapacity: 10
+    // raiPolicyName: 'Microsoft.Default'
+  }
+}
+
+resource gpt4o 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = if (gpt == 'GPT-4o') {
   parent: ai
   name: 'gpt-4o'
   sku: {
@@ -100,8 +138,8 @@ resource dplm 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-previ
       name: 'gpt-4o'
       version: '2024-05-13'
     }
-    versionUpgradeOption: 'OnceCurrentVersionExpired'
-    currentCapacity: 10
-    raiPolicyName: 'Microsoft.Default'
+    // versionUpgradeOption: 'OnceCurrentVersionExpired'
+    // currentCapacity: 10
+    // raiPolicyName: 'Microsoft.Default'
   }
 }
