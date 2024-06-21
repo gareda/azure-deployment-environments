@@ -1,0 +1,6 @@
+name: terraform
+version: 1.0.0
+summary: terraform
+description: terraform
+runner: dotnetdevcentercr01.azurecr.io/ade:latest
+templatePath: main.tf
