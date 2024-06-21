@@ -61,11 +61,12 @@ resource "azurerm_subnet" "dev_box_networking" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_registry
 
 resource "azurerm_container_registry" "cr" {
-  name                = "${replace(local.name, "-", "")}cr01"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  tags                = azurerm_resource_group.rg.tags
-  sku                 = "Basic"
+  name                   = "${replace(local.name, "-", "")}cr01"
+  resource_group_name    = azurerm_resource_group.rg.name
+  location               = azurerm_resource_group.rg.location
+  tags                   = azurerm_resource_group.rg.tags
+  sku                    = "Standard"
+  anonymous_pull_enabled = true
 }
 
 #################### DEV CENTER
