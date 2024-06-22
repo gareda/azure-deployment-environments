@@ -1,0 +1,11 @@
+$schema: "1.0"
+tasks:
+  - name: winget
+    parameters:
+      package: Microsoft.VisualStudioCode
+      runAsUser: true
+  - name: git-clone
+    description: Clone this repository into C:\Workspaces
+    parameters:
+      repositoryUrl: https://github.com/gareda/dotnet-2024-devcenter
+      directory: C:\Workspaces
