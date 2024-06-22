@@ -7,46 +7,20 @@
             "version": "latest"
         },
         "ghcr.io/devcontainers/features/terraform:1": {
-            "version": "latest",
-            "tflint": "latest",
-            "terragrunt": "latest"
-        },
-        "ghcr.io/devcontainers-contrib/features/pre-commit:2": {
             "version": "latest"
-        },
-        "ghcr.io/devcontainers-contrib/features/markdownlint-cli:1": {
-            "version": "latest"
-        },
-        "ghcr.io/azure/azure-dev/azd:0": {
-            "version": "stable"
         },
         "ghcr.io/devcontainers/features/docker-in-docker:2": {
-            "moby": true,
-            "azureDnsAutoDetection": true,
-            "installDockerBuildx": true,
-            "installDockerComposeSwitch": true,
-            "version": "latest",
-            "dockerDashComposeVersion": "latest"
-        },
-        "ghcr.io/devcontainers/features/powershell:1": {
             "version": "latest"
         }
     },
-    "onCreateCommand": "pre-commit install",
     "customizations": {
         "vscode": {
             "extensions": [
                 "azapi-vscode.azapi",
-                "bierner.markdown-emoji",
-                "bierner.markdown-preview-github-styles",
-                "christian-kohler.path-intellisense",
-                "DavidAnson.vscode-markdownlint",
-                "GitHub.copilot",
-                "GitHub.copilot-chat",
+                "DevCenter.ms-devbox",
                 "ktasper.tf-registry-search",
                 "hashicorp.hcl",
                 "hashicorp.terraform",
-                "ms-azuretools.azure-dev",
                 "ms-azuretools.vscode-bicep",
                 "ms-azuretools.vscode-docker",
                 "redhat.vscode-yaml",
@@ -62,16 +36,12 @@
                 "files.autoSave": "afterDelay",
                 "git.autofetch": true,
                 "git.confirmSync": false,
-                "markdown-preview-github-styles.colorTheme": "light",
                 "terraform.codelens.referenceCount": true,
                 "terraform.experimentalFeatures.prefillRequiredFields": true,
                 "terraform.experimentalFeatures.validateOnSave": true,
                 "redhat.telemetry.enabled": false,
                 "workbench.iconTheme": "vscode-icons",
                 "workbench.colorTheme": "Default Dark+",
-                "[markdown]": {
-                    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
-                },
                 "[terraform]": {
                     "editor.defaultFormatter": "hashicorp.terraform"
                 },
