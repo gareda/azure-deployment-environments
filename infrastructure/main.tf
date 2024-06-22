@@ -69,31 +69,51 @@ resource "azurerm_container_registry" "cr" {
   anonymous_pull_enabled = true
 }
 
-#################### DEV CENTER
-# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center
+#################### USER MANAGED IDENTITY
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
 
-resource "azurerm_dev_center" "dct" {
-  name                = "${local.name}-dct-01"
+resource "azurerm_user_assigned_identity" "id" {
+  name                = "${local.name}-id-01"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   tags                = azurerm_resource_group.rg.tags
+}
+
+resource "azurerm_role_assignment" "key_vault_secrets_user" {
+  scope                = azurerm_key_vault_secret.github_personal_access_token.resource_versionless_id
+  principal_id         = azurerm_user_assigned_identity.id.principal_id
+  role_definition_name = "Key Vault Secrets User"
+}
+
+#################### DEV CENTER
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters
+# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment
+
+resource "azapi_resource" "dct" {
+  name      = "${local.name}-dct-01"
+  type      = "Microsoft.DevCenter/devcenters@${local.api_version}"
+  parent_id = azurerm_resource_group.rg.id
+  location  = azurerm_resource_group.rg.location
+  tags      = azurerm_resource_group.rg.tags
 
   identity {
     type = "SystemAssigned"
+  }
+
+  body = {
+    properties = {
+      projectCatalogSettings = {
+        catalogItemSyncEnableStatus = "Enabled"
+      }
+    }
   }
 }
 
 resource "azurerm_role_assignment" "owner" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
-  principal_id         = azurerm_dev_center.dct.identity[0].principal_id
+  principal_id         = azapi_resource.dct.identity[0].principal_id
   role_definition_name = "Owner"
-}
-
-resource "azurerm_role_assignment" "key_vault_secrets_user" {
-  scope                = azurerm_key_vault_secret.github_personal_access_token.resource_versionless_id
-  principal_id         = azurerm_dev_center.dct.identity[0].principal_id
-  role_definition_name = "Key Vault Secrets User"
 }
 
 #################### DEV CENTER - DEV BOX CONFIGURATION
@@ -122,7 +142,7 @@ resource "azapi_resource" "nc" {
 resource "azapi_resource" "dct_connect_nc" {
   name      = "${local.name}-nc-01"
   type      = "Microsoft.DevCenter/devcenters/attachednetworks@${local.api_version}"
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
 
   body = {
     properties = {
@@ -141,7 +161,7 @@ resource "azurerm_shared_image_gallery" "shg" {
 resource "azapi_resource" "dct_connect_shg" {
   name      = "${replace(local.name, "-", "")}shg01"
   type      = "Microsoft.DevCenter/devcenters/galleries@${local.api_version}"
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
 
   body = {
     properties = {
@@ -154,12 +174,12 @@ resource "azapi_resource" "dbd_visual_studio" {
   name      = "visual-studio"
   type      = "Microsoft.DevCenter/devcenters/devboxdefinitions@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
 
   body = {
     properties = {
       imageReference = {
-        id = "${azurerm_dev_center.dct.id}/galleries/default/images/microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win11-m365-gen2"
+        id = "${azapi_resource.dct.id}/galleries/default/images/microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win11-m365-gen2"
       },
       sku = {
         name = "general_i_8c32gb256ssd_v2"
@@ -173,12 +193,12 @@ resource "azapi_resource" "dbd_sandbox" {
   name      = "sandbox"
   type      = "Microsoft.DevCenter/devcenters/devboxdefinitions@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
 
   body = {
     properties = {
       imageReference = {
-        id = "${azurerm_dev_center.dct.id}/galleries/default/images/microsoftwindowsdesktop_windows-ent-cpc_win11-22h2-ent-cpc-os"
+        id = "${azapi_resource.dct.id}/galleries/default/images/microsoftwindowsdesktop_windows-ent-cpc_win11-22h2-ent-cpc-os"
       },
       sku = {
         name = "general_i_8c32gb256ssd_v2"
@@ -190,57 +210,71 @@ resource "azapi_resource" "dbd_sandbox" {
 
 #################### DEV CENTER - ENVIRONMENT CONFIGURATION
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_catalogs
+# https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/devcenters/environmenttypes
 
-resource "azurerm_dev_center_catalog" "azure_examples" {
-  name                = "AzureExamples"
-  resource_group_name = azurerm_dev_center.dct.resource_group_name
-  dev_center_id       = azurerm_dev_center.dct.id
+resource "azapi_resource" "task_examples" {
+  name      = "TaskExamples"
+  type      = "Microsoft.DevCenter/devcenters/catalogs@${local.api_version}"
+  parent_id = azapi_resource.dct.id
 
-  catalog_github {
-    uri               = "https://github.com/Azure/deployment-environments.git"
-    branch            = "main"
-    path              = "/Environments"
-    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
+  body = {
+    properties = {
+      gitHub = {
+        uri    = "https://github.com/microsoft/devcenter-catalog.git"
+        branch = "main"
+        path   = "Tasks"
+      }
+      syncType = "Scheduled"
+    }
   }
 }
 
-resource "azurerm_dev_center_catalog" "microsoft_task_examples" {
-  name                = "MicrosoftExamples"
-  resource_group_name = azurerm_dev_center.dct.resource_group_name
-  dev_center_id       = azurerm_dev_center.dct.id
+resource "azapi_resource" "cumtom_example" {
+  name      = "CustomExamples"
+  type      = "Microsoft.DevCenter/projects/catalogs@${local.api_version}"
+  parent_id = azapi_resource.madrid.id
 
-  catalog_github {
-    uri               = "https://github.com/microsoft/devcenter-catalog.git"
-    branch            = "main"
-    path              = "/Tasks"
-    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
+  body = {
+    properties = {
+      gitHub = {
+        uri              = "https://github.com/gareda/azure-deployment-environments.git"
+        branch           = "main"
+        path             = "/templates"
+        secretIdentifier = azurerm_key_vault_secret.github_personal_access_token.versionless_id
+      }
+      syncType = "Scheduled"
+    }
   }
 }
 
-resource "azurerm_dev_center_catalog" "cumtom_example" {
-  name                = "CustomExamples"
-  resource_group_name = azurerm_dev_center.dct.resource_group_name
-  dev_center_id       = azurerm_dev_center.dct.id
+resource "azapi_resource" "microsoft_examples" {
+  name      = "MicrosoftExamples"
+  type      = "Microsoft.DevCenter/projects/catalogs@${local.api_version}"
+  parent_id = azapi_resource.sevilla.id
 
-  catalog_github {
-    uri               = "https://github.com/gareda/azure-deployment-environments.git"
-    branch            = "main"
-    path              = "/templates"
-    key_vault_key_url = azurerm_key_vault_secret.github_personal_access_token.versionless_id
+  body = {
+    properties = {
+      gitHub = {
+        uri    = "https://github.com/microsoft/devcenter-catalog.git"
+        branch = "main"
+        path   = "/Environment-Definitions"
+      }
+      syncType = "Scheduled"
+    }
   }
 }
 
 resource "azapi_resource" "develop" {
   name      = "develop"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
 resource "azapi_resource" "sandbox" {
   name      = "sandbox"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
-  parent_id = azurerm_dev_center.dct.id
+  parent_id = azapi_resource.dct.id
   tags      = azurerm_resource_group.rg.tags
 }
 
@@ -248,28 +282,62 @@ resource "azapi_resource" "sandbox" {
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dev_center_project
 # https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/projects/environmenttypes
 
-resource "azurerm_dev_center_project" "madrid" {
-  name                       = "${azurerm_resource_group.rg.name}-madrid"
-  dev_center_id              = azurerm_dev_center.dct.id
-  resource_group_name        = azurerm_resource_group.rg.name
-  location                   = azurerm_resource_group.rg.location
-  tags                       = azurerm_resource_group.rg.tags
-  maximum_dev_boxes_per_user = 2
+resource "azapi_resource" "madrid" {
+  name      = "${azurerm_resource_group.rg.name}-madrid"
+  type      = "Microsoft.DevCenter/projects@${local.api_version}"
+  parent_id = azurerm_resource_group.rg.id
+  location  = azurerm_resource_group.rg.location
+  tags = {
+    "Architect" = "Daniel Garrido Sánchez"
+  }
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.id.id]
+  }
+
+  body = {
+    properties = {
+      devCenterId        = azapi_resource.dct.id
+      description        = "Madrid Office"
+      maxDevBoxesPerUser = 2
+      catalogSettings = {
+        catalogItemSyncTypes = ["EnvironmentDefinition"]
+      }
+    }
+  }
 }
 
-resource "azurerm_dev_center_project" "malaga" {
-  name                       = "${azurerm_resource_group.rg.name}-malaga"
-  dev_center_id              = azurerm_dev_center.dct.id
-  resource_group_name        = azurerm_resource_group.rg.name
-  location                   = azurerm_resource_group.rg.location
-  tags                       = azurerm_resource_group.rg.tags
-  maximum_dev_boxes_per_user = 1
+resource "azapi_resource" "sevilla" {
+  name      = "${azurerm_resource_group.rg.name}-sevilla"
+  type      = "Microsoft.DevCenter/projects@${local.api_version}"
+  parent_id = azurerm_resource_group.rg.id
+  location  = azurerm_resource_group.rg.location
+  tags = {
+    "Architect" = "Daniel Garrido Sánchez"
+  }
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.id.id]
+  }
+
+  body = {
+    properties = {
+      devCenterId        = azapi_resource.dct.id
+      description        = "Sevilla Office"
+      maxDevBoxesPerUser = 1
+      catalogSettings = {
+        catalogItemSyncTypes = ["EnvironmentDefinition"]
+      }
+    }
+  }
 }
 
 resource "azapi_resource" "madrid_develop" {
   name      = azapi_resource.develop.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
-  parent_id = azurerm_dev_center_project.madrid.id
+  parent_id = azapi_resource.madrid.id
   location  = azurerm_resource_group.rg.location
 
   identity {
@@ -293,7 +361,7 @@ resource "azapi_resource" "madrid_sandbox" {
   name      = azapi_resource.sandbox.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.madrid.id
+  parent_id = azapi_resource.madrid.id
 
   identity {
     type = "SystemAssigned"
@@ -312,11 +380,11 @@ resource "azapi_resource" "madrid_sandbox" {
   }
 }
 
-resource "azapi_resource" "malaga_develop" {
+resource "azapi_resource" "sevilla_develop" {
   name      = azapi_resource.develop.name
   type      = "Microsoft.DevCenter/projects/environmentTypes@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.malaga.id
+  parent_id = azapi_resource.sevilla.id
 
   identity {
     type = "SystemAssigned"
@@ -338,20 +406,22 @@ resource "azapi_resource" "malaga_develop" {
 #################### DEV CENTER - PROJECTS - MANAGE
 # https://learn.microsoft.com/en-us/azure/templates/microsoft.devcenter/projects/pools
 
-resource "azapi_resource" "visual_studio_external" {
-  name      = "vs-external-network"
+resource "azapi_resource" "madrid_visual_studio_external" {
+  name      = "m-vs-external-network"
   type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.madrid.id
+  parent_id = azapi_resource.madrid.id
 
   body = {
     properties = {
-      displayName           = "Visual Studio External"
-      devBoxDefinitionName  = azapi_resource.dbd_visual_studio.name
-      networkConnectionName = azapi_resource.nc.name
-      licenseType           = "Windows_Client"
-      localAdministrator    = "Enabled"
-      singleSignOnStatus    = "Enabled"
+      displayName                  = "Visual Studio External"
+      devBoxDefinitionName         = azapi_resource.dbd_visual_studio.name
+      networkConnectionName        = "managedNetwork"
+      virtualNetworkType           = "Managed"
+      managedVirtualNetworkRegions = ["northeurope"]
+      licenseType                  = "Windows_Client"
+      localAdministrator           = "Enabled"
+      singleSignOnStatus           = "Enabled"
     }
   }
 
@@ -360,11 +430,11 @@ resource "azapi_resource" "visual_studio_external" {
   }
 }
 
-resource "azapi_resource" "visual_studio_internal" {
-  name      = "vs-internal-network"
+resource "azapi_resource" "madrid_visual_studio_internal" {
+  name      = "m-vs-internal-network"
   type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.madrid.id
+  parent_id = azapi_resource.madrid.id
 
   body = {
     properties = {
@@ -372,7 +442,7 @@ resource "azapi_resource" "visual_studio_internal" {
       devBoxDefinitionName  = azapi_resource.dbd_visual_studio.name
       networkConnectionName = azapi_resource.nc.name
       licenseType           = "Windows_Client"
-      localAdministrator    = "Enabled"
+      localAdministrator    = "Disabled"
       singleSignOnStatus    = "Enabled"
     }
   }
@@ -382,20 +452,46 @@ resource "azapi_resource" "visual_studio_internal" {
   }
 }
 
-resource "azapi_resource" "sandbox_external" {
-  name      = "sb-external-network"
+resource "azapi_resource" "madrid_sandbox_external" {
+  name      = "m-sb-external-network"
   type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
   location  = azurerm_resource_group.rg.location
-  parent_id = azurerm_dev_center_project.madrid.id
+  parent_id = azapi_resource.madrid.id
 
   body = {
     properties = {
-      displayName           = "Sandbox External"
-      devBoxDefinitionName  = azapi_resource.dbd_sandbox.name
-      networkConnectionName = azapi_resource.nc.name
-      licenseType           = "Windows_Client"
-      localAdministrator    = "Enabled"
-      singleSignOnStatus    = "Enabled"
+      displayName                  = "Sandbox External"
+      devBoxDefinitionName         = azapi_resource.dbd_sandbox.name
+      networkConnectionName        = "managedNetwork"
+      virtualNetworkType           = "Managed"
+      managedVirtualNetworkRegions = ["northeurope"]
+      licenseType                  = "Windows_Client"
+      localAdministrator           = "Enabled"
+      singleSignOnStatus           = "Enabled"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [tags["hidden-title"]]
+  }
+}
+
+resource "azapi_resource" "sevilla_sandbox_external" {
+  name      = "s-sb-external-network"
+  type      = "Microsoft.DevCenter/projects/pools@${local.api_version}"
+  location  = azurerm_resource_group.rg.location
+  parent_id = azapi_resource.sevilla.id
+
+  body = {
+    properties = {
+      displayName                  = "Sandbox External"
+      devBoxDefinitionName         = azapi_resource.dbd_sandbox.name
+      networkConnectionName        = "managedNetwork"
+      virtualNetworkType           = "Managed"
+      managedVirtualNetworkRegions = ["northeurope"]
+      licenseType                  = "Windows_Client"
+      localAdministrator           = "Enabled"
+      singleSignOnStatus           = "Enabled"
     }
   }
 
