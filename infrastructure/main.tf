@@ -6,7 +6,9 @@ data "azurerm_client_config" "current" {}
 resource "azurerm_resource_group" "rg" {
   name     = local.name
   location = "North Europe"
-  tags     = {}
+  tags     = {
+    "Event" = "Dotnet 2024"
+  }
 }
 
 #################### KEY VAULT
@@ -268,14 +270,12 @@ resource "azapi_resource" "develop" {
   name      = "develop"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
   parent_id = azapi_resource.dct.id
-  tags      = azurerm_resource_group.rg.tags
 }
 
 resource "azapi_resource" "sandbox" {
   name      = "sandbox"
   type      = "Microsoft.DevCenter/devcenters/environmentTypes@${local.api_version}"
   parent_id = azapi_resource.dct.id
-  tags      = azurerm_resource_group.rg.tags
 }
 
 #################### DEV CENTER - PROJECTS
